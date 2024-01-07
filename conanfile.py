@@ -13,7 +13,7 @@ class ConanConfiguration(ConanFile):
 
     def set_name(self):
         try:
-            self.name = Path(__file__).parent.joinpath('name-version.txt').read_text().split(':')[0].strip()
+            self.name = Path(__file__).parent.joinpath('name-version.txt').read_text().split(':')[0].strip().lower()
         except Exception as e:
             logging.error(e, exc_info=True)
             raise e
