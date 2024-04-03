@@ -6,12 +6,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS "TRUE" CACHE BOOL "..." FORCE)
 
 block()
     set(fileName "util.cmake")
-    if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/../${fileName}")
+    if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/../common/${fileName}")
         file(REMOVE "${CMAKE_CURRENT_BINARY_DIR}/tmp/${fileName}")
         file(DOWNLOAD
-            "https://raw.githubusercontent.com/exqudens/exqudens-cmake/master/src/main/cmake/${fileName}"
+            "https://raw.githubusercontent.com/exqudens/exqudens-cmake/1.0.1/src/main/cmake/${fileName}"
             "${CMAKE_CURRENT_BINARY_DIR}/tmp/${fileName}"
-            EXPECTED_MD5 "329d8afd7861903d8892854683082725"
+            EXPECTED_MD5 "d7dd546adf3830d9eb6cca7b0dda7d4e"
             STATUS downloadStatus
         )
         if(NOT "${downloadStatus}" STREQUAL "0;\"No error\"")
@@ -32,7 +32,6 @@ if("msvc-16-x64-x64" IN_LIST "PRESET_NAME_ELEMENTS")
             VERSION "16"
             HOST "x64"
             TARGET "x64"
-            NO_CACHE "FALSE"
             SET_CMAKE_SYSTEM_NAME "FALSE"
             OUTPUT_FILE "${CMAKE_CURRENT_BINARY_DIR}/../common/msvc-16-x64-x64-toolchain.cmake"
         )
@@ -40,12 +39,11 @@ if("msvc-16-x64-x64" IN_LIST "PRESET_NAME_ELEMENTS")
     find_program(CONAN_COMMAND NAMES "conan.exe" PATHS ENV CONAN_PATH ENV PATH REQUIRED NO_CACHE NO_DEFAULT_PATH)
 elseif("gcc" IN_LIST PRESET_NAME_ELEMENTS)
     if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/../common/gcc-toolchain.cmake")
-        find_file(COMPILER_PATH NAMES "gcc" PATHS ENV GCC_PATH ENV PATH REQUIRED NO_CACHE NO_DEFAULT_PATH)
+        find_file(compilerFile NAMES "gcc" PATHS ENV GCC_PATH ENV PATH REQUIRED NO_CACHE NO_DEFAULT_PATH)
         set_gnu_toolchain(TOOLCHAIN_CONTENT
             PROCESSOR "x86_64"
             OS "${CMAKE_HOST_SYSTEM_NAME}"
-            PATH "${COMPILER_PATH}"
-            NO_CACHE "FALSE"
+            PATH "${compilerFile}"
             SET_CMAKE_SYSTEM_NAME "FALSE"
             OUTPUT_FILE "${CMAKE_CURRENT_BINARY_DIR}/../common/gcc-toolchain.cmake"
         )
@@ -61,7 +59,13 @@ string(STRIP "${RAW_NAME}" NAME)
 string(STRIP "${RAW_VERSION}" VERSION)
 project("${NAME}" VERSION "${VERSION}" LANGUAGES "NONE")
 
-message("project: '${PROJECT_NAME}-${PROJECT_VERSION}'")
+message(STATUS "project: '${PROJECT_NAME}-${PROJECT_VERSION}'")
+
+string(TOLOWER "${PROJECT_NAME}" PROJECT_NAME_LOWER)
+set(PROJECT_VERSION_NOTWEAK "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
+
+message(STATUS "PROJECT_NAME_LOWER: '${PROJECT_NAME_LOWER}'")
+message(STATUS "PROJECT_VERSION_NOTWEAK: '${PROJECT_VERSION_NOTWEAK}'")
 
 enable_language("C")
 enable_language("CXX")
@@ -126,8 +130,6 @@ set_conan_options(CONAN_OPTIONS
     "shared=${CONAN_BUILD_SHARED_LIBS}"
 )
 
-string(TOLOWER "${PROJECT_NAME}" PROJECT_NAME_LOWER)
-
 cmake_path(CONVERT "$ENV{CMAKE_USER_HOME}" TO_CMAKE_PATH_LIST CMAKE_USER_HOME NORMALIZE)
 if("" STREQUAL "${CMAKE_USER_HOME}")
     cmake_path(CONVERT "$ENV{HOME}" TO_CMAKE_PATH_LIST HOME NORMALIZE)
@@ -151,30 +153,30 @@ endif()
 if(NOT EXISTS "${CMAKE_DOWNLOADS}" OR NOT IS_DIRECTORY "${CMAKE_DOWNLOADS}")
     message(FATAL_ERROR "CMAKE_DOWNLOADS: '${CMAKE_DOWNLOADS}' is not directory.")
 endif()
-if(NOT EXISTS "${CMAKE_DOWNLOADS}/${PROJECT_NAME_LOWER}-${PROJECT_VERSION}.zip")
-    message("download ...")
+if(NOT EXISTS "${CMAKE_DOWNLOADS}/${PROJECT_NAME_LOWER}-${PROJECT_VERSION_NOTWEAK}.zip")
+    message(STATUS "download ...")
     file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/tmp")
     file(DOWNLOAD
-        "https://github.com/eclipse-cyclonedds/cyclonedds/archive/refs/tags/${PROJECT_VERSION}.zip"
-        "${PROJECT_BINARY_DIR}/tmp/${PROJECT_NAME_LOWER}-${PROJECT_VERSION}.zip"
+        "https://github.com/eclipse-cyclonedds/cyclonedds/archive/refs/tags/${PROJECT_VERSION_NOTWEAK}.zip"
+        "${PROJECT_BINARY_DIR}/tmp/${PROJECT_NAME_LOWER}-${PROJECT_VERSION_NOTWEAK}.zip"
         EXPECTED_MD5 "783595e860c8fc0b04b84b4890fc00a0"
         STATUS downloadStatus
     )
     if(NOT "${downloadStatus}" STREQUAL "0;\"No error\"")
         message(FATAL_ERROR "downloadStatus: '${downloadStatus}'")
     endif()
-    file(COPY "${PROJECT_BINARY_DIR}/tmp/${PROJECT_NAME_LOWER}-${PROJECT_VERSION}.zip" DESTINATION "${CMAKE_DOWNLOADS}")
-    message("... done")
+    file(COPY "${PROJECT_BINARY_DIR}/tmp/${PROJECT_NAME_LOWER}-${PROJECT_VERSION_NOTWEAK}.zip" DESTINATION "${CMAKE_DOWNLOADS}")
+    message(STATUS "... done")
 endif()
-if(NOT EXISTS "${PROJECT_BINARY_DIR}/${PROJECT_NAME_LOWER}-${PROJECT_VERSION}.zip")
-    message("copy from downloads ...")
-    file(COPY "${CMAKE_DOWNLOADS}/${PROJECT_NAME_LOWER}-${PROJECT_VERSION}.zip" DESTINATION "${PROJECT_BINARY_DIR}")
-    message("... done")
+if(NOT EXISTS "${PROJECT_BINARY_DIR}/${PROJECT_NAME_LOWER}-${PROJECT_VERSION_NOTWEAK}.zip")
+    message(STATUS "copy from downloads ...")
+    file(COPY "${CMAKE_DOWNLOADS}/${PROJECT_NAME_LOWER}-${PROJECT_VERSION_NOTWEAK}.zip" DESTINATION "${PROJECT_BINARY_DIR}")
+    message(STATUS "... done")
 endif()
-if(NOT EXISTS "${PROJECT_NAME_LOWER}-${PROJECT_VERSION}")
-    message("extract ...")
-    file(ARCHIVE_EXTRACT INPUT "${PROJECT_BINARY_DIR}/${PROJECT_NAME_LOWER}-${PROJECT_VERSION}.zip")
-    message("... done")
+if(NOT EXISTS "${PROJECT_NAME_LOWER}-${PROJECT_VERSION_NOTWEAK}")
+    message(STATUS "extract ...")
+    file(ARCHIVE_EXTRACT INPUT "${PROJECT_BINARY_DIR}/${PROJECT_NAME_LOWER}-${PROJECT_VERSION_NOTWEAK}.zip")
+    message(STATUS "... done")
 endif()
 get_filename_component("PROJECT_BINARY_DIR_NAME" "${PROJECT_BINARY_DIR}" NAME)
 get_filename_component("PROJECT_BINARY_DIR_PARENT" "${PROJECT_BINARY_DIR}" DIRECTORY)
@@ -183,7 +185,7 @@ get_filename_component("PROJECT_BINARY_DIR_PARENT_NAME" "${PROJECT_BINARY_DIR_PA
 #set(BUILD_IDLC "ON" CACHE STRING "..." FORCE)
 #set(BUILD_EXAMPLES "ON" CACHE STRING "..." FORCE)
 
-add_subdirectory("${PROJECT_BINARY_DIR_PARENT_NAME}/${PROJECT_BINARY_DIR_NAME}/${PROJECT_NAME_LOWER}-${PROJECT_VERSION}")
+add_subdirectory("${PROJECT_BINARY_DIR_PARENT_NAME}/${PROJECT_BINARY_DIR_NAME}/${PROJECT_NAME_LOWER}-${PROJECT_VERSION_NOTWEAK}")
 
 add_custom_target("cmake-install"
     COMMAND "${CMAKE_COMMAND}" --install "${PROJECT_BINARY_DIR}" --prefix "${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME_LOWER}"
