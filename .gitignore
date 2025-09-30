@@ -10,3 +10,5 @@ tmp/
 *.iws
 *.ipr
 *.ids
+nohup.out
+CMakeUserPresets.json
